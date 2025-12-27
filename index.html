@@ -47,6 +47,8 @@ body {
 <div id="root"></div>
 <script type="text/babel">
 const { useState, useEffect } = React;
+
+// ============ BACKEND SIMULADO ============
 const BACKEND = {
   init: function() {
     if (!localStorage.getItem('ava_users')) {
@@ -313,6 +315,7 @@ const Package = ({ size = 24 }) => (
     <line x1="12" y1="22.08" x2="12" y2="12"/>
   </svg>
 );
+
 // ============ PANTALLA DE LOGIN ============
 function LoginScreen({ onLogin }) {
   const [username, setUsername] = useState('');
@@ -483,19 +486,122 @@ function LoginScreen({ onLogin }) {
   );
 }
 
+// ============ HEADER ============
+function Header({ user, onLogout, currentView, setCurrentView, selectedRestaurant }) {
+  return (
+    <header style={{
+      background: '#fff',
+      borderBottom: '1px solid #e0e0e0',
+      position: 'sticky',
+      top: 0,
+      zIndex: 100
+    }}>
+      <div style={{
+        maxWidth: '1400px',
+        margin: '0 auto',
+        padding: '1rem 2rem',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center'
+      }}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.5rem'
+        }}>
+          <span style={{ fontSize: '1.5rem', fontWeight: '700', color: '#333' }}>AVA</span>
+          <span style={{ fontSize: '0.85rem', color: '#999' }}>SELECCIÓN</span>
+        </div>
+
+        <nav style={{ display: 'flex', gap: '0.5rem' }}>
+          <button
+            onClick={() => setCurrentView('catalog')}
+            style={{
+              padding: '0.75rem 1.5rem',
+              background: currentView === 'catalog' ? '#FFC107' : 'transparent',
+              color: currentView === 'catalog' ? '#333' : '#666',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontWeight: '600',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem'
+            }}
+          >
+            <ShoppingCart size={18} />
+            Catálogo
+          </button>
+          <button
+            onClick={() => setCurrentView('orders')}
+            style={{
+              padding: '0.75rem 1.5rem',
+              background: currentView === 'orders' ? '#FFC107' : 'transparent',
+              color: currentView === 'orders' ? '#333' : '#666',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontWeight: '600',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem'
+            }}
+          >
+            <Package size={18} />
+            Mis Pedidos
+          </button>
+        </nav>
+
+        <button
+          onClick={onLogout}
+          style={{
+            padding: '0.75rem 1.5rem',
+            background: '#1a1a1a',
+            color: '#fff',
+            border: 'none',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            fontWeight: '600',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem'
+          }}
+        >
+          <User size={18} />
+          {selectedRestaurant ? selectedRestaurant.name : user.name}
+        </button>
+      </div>
+    </header>
+  );
+}
+
 // ============ COMPONENTE APP PRINCIPAL ============
 function App() {
   const [currentUser, setCurrentUser] = useState(null);
+  const [currentView, setCurrentView] = useState('catalog');
+  const [selectedRestaurant, setSelectedRestaurant] = useState(null);
+  const [notification, setNotification] = useState(null);
 
   useEffect(() => {
     const user = BACKEND.getCurrentUser();
     if (user) {
       setCurrentUser(user);
+      if (user.restaurants?.length > 0) {
+        setSelectedRestaurant(user.restaurants[0]);
+      }
     }
   }, []);
 
+  const showNotif = (msg) => {
+    setNotification(msg);
+    setTimeout(() => setNotification(null), 3000);
+  };
+
   const handleLogin = (user) => {
     setCurrentUser(user);
+    if (user.restaurants?.length > 0) {
+      setSelectedRestaurant(user.restaurants[0]);
+    }
   };
 
   const handleLogout = () => {
@@ -509,31 +615,71 @@ function App() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#f5f5f5' }}>
-      <h1 style={{ padding: '2rem', textAlign: 'center' }}>
-        Bienvenido, {currentUser.name}
-      </h1>
-      <button
-        onClick={handleLogout}
-        style={{
-          display: 'block',
-          margin: '0 auto',
-          padding: '1rem 2rem',
+      <Header
+        user={currentUser}
+        onLogout={handleLogout}
+        currentView={currentView}
+        setCurrentView={setCurrentView}
+        selectedRestaurant={selectedRestaurant}
+      />
+
+      {notification && (
+        <div style={{
+          position: 'fixed',
+          top: '100px',
+          right: '2rem',
           background: '#FFC107',
-          border: 'none',
-          borderRadius: '8px',
-          cursor: 'pointer',
-          fontWeight: '700'
-        }}
-      >
-        Cerrar Sesión
-      </button>
+          color: '#333',
+          padding: '1rem 1.5rem',
+          borderRadius: '12px',
+          zIndex: 1000,
+          fontWeight: '600',
+          boxShadow: '0 4px 12px rgba(255,193,7,0.3)',
+          animation: 'fadeIn 0.3s'
+        }}>
+          {notification}
+        </div>
+      )}
+
+      <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '2rem' }}>
+        {currentView === 'catalog' && (
+          <div style={{
+            background: '#fff',
+            padding: '2rem',
+            borderRadius: '16px',
+            textAlign: 'center'
+          }}>
+            <h2 style={{ fontSize: '2rem', color: '#333', marginBottom: '1rem' }}>
+              Vista de Catálogo
+            </h2>
+            <p style={{ color: '#666' }}>
+              Aquí irán las categorías y productos
+            </p>
+          </div>
+        )}
+
+        {currentView === 'orders' && (
+          <div style={{
+            background: '#fff',
+            padding: '2rem',
+            borderRadius: '16px',
+            textAlign: 'center'
+          }}>
+            <h2 style={{ fontSize: '2rem', color: '#333', marginBottom: '1rem' }}>
+              Mis Pedidos
+            </h2>
+            <p style={{ color: '#666' }}>
+              Aquí irá el historial de pedidos
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
 
 // ============ RENDERIZAR APP ============
 ReactDOM.render(<App />, document.getElementById('root'));
-
 </script>
 </body>
 </html>
