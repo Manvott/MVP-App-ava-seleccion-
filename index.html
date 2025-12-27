@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AVA Selección</title>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+body {
+  font-family: 'Inter', sans-serif;
+  background: #f5f5f5;
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes slideUp {
+  from { transform: translateY(30px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+}
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #f5f5f5;
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: #FFC107;
+  border-radius: 10px;
+}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect } = React;
+const BACKEND = {
+  init: function() {
+    if (!localStorage.getItem('ava_users')) {
+      localStorage.setItem('ava_users', JSON.stringify([
+        {
+          id: 2,
+          username: 'cliente1',
+          password: 'cliente123',
+          role: 'client',
+          name: 'Restaurante El Teide',
+          email: 'teide@rest.com',
+          restaurants: [
+            { id: 1, name: 'El Teide - Tenerife Norte', island: 'tenerife', address: 'Santa Cruz de Tenerife' },
+            { id: 2, name: 'El Teide - La Laguna', island: 'tenerife', address: 'San Cristóbal de La Laguna' }
+          ]
+        },
+        {
+          id: 3,
+          username: 'cliente2',
+          password: 'cliente123',
+          role: 'client',
+          name: 'Grupo Atlántico',
+          email: 'atlantico@rest.com',
+          restaurants: [
+            { id: 3, name: 'Atlántico - Las Palmas', island: 'gran_canaria', address: 'Las Palmas de Gran Canaria' },
+            { id: 4, name: 'Atlántico - Maspalomas', island: 'gran_canaria', address: 'Maspalomas' }
+          ]
+        }
+      ]));
+    }
+    if (!localStorage.getItem('ava_orders')) localStorage.setItem('ava_orders', JSON.stringify([]));
+    if (!localStorage.getItem('ava_invoices')) localStorage.setItem('ava_invoices', JSON.stringify([]));
+    if (!localStorage.getItem('ava_favorites')) localStorage.setItem('ava_favorites', JSON.stringify({}));
+  },
+
+  login: function(u, p) {
+    const users = JSON.parse(localStorage.getItem('ava_users') || '[]');
+    const user = users.find(x => x.username === u && x.password === p);
+    if (user) {
+      const { password, ...userWithoutPassword } = user;
+      localStorage.setItem('ava_current_user', JSON.stringify(userWithoutPassword));
+      return { success: true, user: userWithoutPassword };
+    }
+    return { success: false, message: 'Usuario o contraseña incorrectos' };
+  },
+
+  logout: function() {
+    localStorage.removeItem('ava_current_user');
+  },
+
+  getCurrentUser: function() {
+    const u = localStorage.getItem('ava_current_user');
+    return u ? JSON.parse(u) : null;
+  },
+
+  createOrder: function(order) {
+    const orders = JSON.parse(localStorage.getItem('ava_orders') || '[]');
+    const newOrder = {
+      ...order,
+      id: Date.now(),
+      orderNumber: 'PED-' + Date.now(),
+      createdAt: new Date().toISOString(),
+      status: 'pending'
+    };
+    orders.push(newOrder);
+    localStorage.setItem('ava_orders', JSON.stringify(orders));
+    order.items.forEach(item => this.addToFavorites(order.userId, item.id));
+    return newOrder;
+  },
+
+  getOrders: function(userId) {
+    const orders = JSON.parse(localStorage.getItem('ava_orders') || '[]');
+    return orders.filter(o => o.userId === userId).sort((a, b) => 
+      new Date(b.createdAt) - new Date(a.createdAt)
+    );
+  },
+
+  getFavorites: function(userId) {
+    const f = JSON.parse(localStorage.getItem('ava_favorites') || '{}');
+    return f[userId] || [];
+  },
+
+  addToFavorites: function(userId, productId) {
+    const f = JSON.parse(localStorage.getItem('ava_favorites') || '{}');
+    if (!f[userId]) f[userId] = [];
+    if (!f[userId].includes(productId)) {
+      f[userId].push(productId);
+      localStorage.setItem('ava_favorites', JSON.stringify(f));
+    }
+  },
+
+  removeFromFavorites: function(userId, productId) {
+    const f = JSON.parse(localStorage.getItem('ava_favorites') || '{}');
+    if (f[userId]) {
+      f[userId] = f[userId].filter(id => id !== productId);
+      localStorage.setItem('ava_favorites', JSON.stringify(f));
+    }
+  }
+};
+
+BACKEND.init();
+
+// ============ DATOS ============
+const ISLANDS = [
+  { id: 'tenerife', name: 'Tenerife', deliveryDays: 'Martes y Viernes' },
+  { id: 'gran_canaria', name: 'Gran Canaria', deliveryDays: 'Lunes y Jueves' }
+];
+
+const CATEGORIES = [
+  {
+    id: 'favorites',
+    name: 'Mis Favoritos',
+    description: 'Productos que has comprado anteriormente',
+    image: 'https://images.unsplash.com/photo-1495195134817-aeb325a55b65?w=600&h=400&fit=crop'
+  },
+  {
+    id: 'aceites',
+    name: 'Aceites y Vinagres',
+    description: 'Aceites premium y vinagres selectos',
+    image: 'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?w=600&h=400&fit=crop'
+  },
+  {
+    id: 'condimentos',
+    name: 'Condimentos y Especias',
+    description: 'Sales, pimientas y especias del mundo',
+    image: 'https://images.unsplash.com/photo-1596040033229-a0b3b46fe2b5?w=600&h=400&fit=crop'
+  },
+  {
+    id: 'pasta',
+    name: 'Pastas y Granos',
+    description: 'Pastas artesanales y arroces especiales',
+    image: 'https://images.unsplash.com/photo-1551462147-ff29053bfc14?w=600&h=400&fit=crop'
+  }
+];
+
+const PRODUCTS = [
+  {
+    id: 1,
+    name: "Aceite de Oliva Virgen Extra",
+    code: "AOL-001",
+    unit: "Litro",
+    format: "Botella 1L",
+    price: 24.50,
+    category: 'aceites',
+    image: "https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?w=400",
+    description: "Aceite de oliva virgen extra de primera presión en frío.",
+    techSheet: { origin: "Andalucía, España", acidity: "0.2%", extraction: "Primera presión en frío" }
+  },
+  {
+    id: 2,
+    name: "Vinagre Balsámico de Módena",
+    code: "VIN-002",
+    unit: "ml",
+    format: "Botella 500ml",
+    price: 18.90,
+    category: 'aceites',
+    image: "https://images.unsplash.com/photo-1609501676725-7186f017a4b7?w=400",
+    description: "Vinagre balsámico tradicional envejecido 8 años.",
+    techSheet: { origin: "Módena, Italia", aging: "8 años", density: "1.28" }
+  },
+  {
+    id: 3,
+    name: "Sal Rosa del Himalaya",
+    code: "SAL-003",
+    unit: "Kg",
+    format: "Bolsa 1Kg",
+    price: 12.50,
+    category: 'condimentos',
+    image: "https://images.unsplash.com/photo-1607672632458-9eb56696346b?w=400",
+    description: "Sal rosa pura del Himalaya, rica en minerales.",
+    techSheet: { origin: "Punjab, Pakistán", purity: "98%", minerals: "84 minerales traza" }
+  },
+  {
+    id: 4,
+    name: "Pasta Artesanal Fusilli",
+    code: "PAS-004",
+    unit: "Kg",
+    format: "Paquete 500g",
+    price: 6.50,
+    category: 'pasta',
+    image: "https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?w=400",
+    description: "Pasta artesanal de sémola de trigo duro.",
+    techSheet: { origin: "Toscana, Italia", ingredients: "Sémola de trigo duro", drying: "Secado lento 48h" }
+  }
+];
+
+// ============ ICONOS SVG ============
+const Heart = ({ size = 24, color = "currentColor", fill = "none" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill={fill} stroke={color} strokeWidth="2">
+    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+  </svg>
+);
+
+const Plus = ({ size = 24 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <line x1="12" y1="5" x2="12" y2="19"/>
+    <line x1="5" y1="12" x2="19" y2="12"/>
+  </svg>
+);
+
+const Minus = ({ size = 24 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <line x1="5" y1="12" x2="19" y2="12"/>
+  </svg>
+);
+
+const ShoppingCart = ({ size = 24 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <circle cx="9" cy="21" r="1"/>
+    <circle cx="20" cy="21" r="1"/>
+    <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+  </svg>
+);
+
+const FileText = ({ size = 24 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+    <polyline points="14 2 14 8 20 8"/>
+  </svg>
+);
+
+const User = ({ size = 24 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+    <circle cx="12" cy="7" r="4"/>
+  </svg>
+);
+
+const X = ({ size = 24 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <line x1="18" y1="6" x2="6" y2="18"/>
+    <line x1="6" y1="6" x2="18" y2="18"/>
+  </svg>
+);
+
+const MapPin = ({ size = 24 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+    <circle cx="12" cy="10" r="3"/>
+  </svg>
+);
+
+const Truck = ({ size = 24 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <rect x="1" y="3" width="15" height="13"/>
+    <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/>
+    <circle cx="5.5" cy="18.5" r="2.5"/>
+    <circle cx="18.5" cy="18.5" r="2.5"/>
+  </svg>
+);
+
+const Info = ({ size = 24 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <circle cx="12" cy="12" r="10"/>
+    <line x1="12" y1="16" x2="12" y2="12"/>
+    <line x1="12" y1="8" x2="12.01" y2="8"/>
+  </svg>
+);
+
+const Package = ({ size = 24 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+    <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+    <line x1="12" y1="22.08" x2="12" y2="12"/>
+  </svg>
+);
+// Aquí iremos pegando el código paso por paso
+
+</script>
+</body>
+</html>
