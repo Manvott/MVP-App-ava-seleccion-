@@ -30,6 +30,10 @@ body {
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.15); }
 }
+@keyframes fadeOut {
+  from { opacity: 1; transform: scale(1); }
+  to { opacity: 0; transform: scale(0.9); }
+}
 ::-webkit-scrollbar {
   width: 8px;
 }
@@ -72,7 +76,7 @@ const BACKEND = {
           role: 'client',
           name: 'Restaurante El Teide',
           email: 'teide@rest.com',
-          billingPreference: 'consolidated', // 'consolidated' o 'individual'
+          billingPreference: 'consolidated',
           restaurants: [
             { id: 1, name: 'El Teide - Tenerife Norte', island: 'tenerife', address: 'Santa Cruz de Tenerife' },
             { id: 2, name: 'El Teide - La Laguna', island: 'tenerife', address: 'San Cristóbal de La Laguna' }
@@ -162,7 +166,6 @@ const BACKEND = {
     const userInvoices = invoices.filter(i => i.userId === userId);
     
     if (billingPreference === 'consolidated') {
-      // Agrupar por mes
       const grouped = {};
       userInvoices.forEach(inv => {
         const date = new Date(inv.createdAt);
@@ -187,7 +190,6 @@ const BACKEND = {
       });
       return Object.values(grouped).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     } else {
-      // Facturas individuales por restaurante
       return userInvoices.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     }
   },
@@ -232,7 +234,6 @@ const PRODUCTS = [
   { id: 4, name: "Pasta Artesanal Fusilli", code: "PAS-004", unit: "Kg", format: "Paquete 500g", price: 6.50, category: 'pasta', image: "https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?w=400", description: "Pasta artesanal de sémola de trigo duro.", techSheet: { origin: "Toscana, Italia", ingredients: "Sémola de trigo duro", drying: "Secado lento 48h" } }
 ];
 
-// ICONOS (los mismos del paso anterior)
 const Heart = ({ size = 24, color = "currentColor", fill = "none" }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill={fill} stroke={color} strokeWidth="2">
     <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
@@ -317,8 +318,12 @@ const Settings = ({ size = 24 }) => (
   </svg>
 );
 
-// Componentes anteriores (LoginScreen, Header, RestaurantModal, TechSheetModal, CategoriesView, ProductsView, OrdersView)
-// ... (mantener los mismos del paso anterior)
+const Trash = ({ size = 24 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+    <line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/>
+  </svg>
+);
 
 function LoginScreen({ onLogin }) {
   const [username, setUsername] = useState('');
@@ -361,8 +366,8 @@ function LoginScreen({ onLogin }) {
           </button>
           <div style={{ marginTop: '2rem', padding: '1rem', background: '#f8f8f8', borderRadius: '8px', fontSize: '0.85rem', color: '#666' }}>
             <strong style={{ display: 'block', marginBottom: '0.5rem', color: '#333' }}>Usuarios de prueba:</strong>
-            <div><strong>Cliente 1:</strong> cliente1 / cliente123 (Facturas consolidadas)</div>
-            <div><strong>Cliente 2:</strong> cliente2 / cliente123 (Facturas por restaurante)</div>
+            <div><strong>Cliente 1:</strong> cliente1 / cliente123</div>
+            <div><strong>Cliente 2:</strong> cliente2 / cliente123</div>
           </div>
         </form>
       </div>
@@ -517,6 +522,7 @@ function CategoriesView({ setSelectedCategory, favorites, selectedRestaurant, se
 
 function ProductsView({ productsToShow, selectedCategory, setSelectedCategory, favorites, toggleFavorite, addToCart, cart, updateQuantity, cartTotal, finishOrder, setShowTechSheet, setSelectedProduct }) {
   const currentCategory = CATEGORIES.find(c => c.id === selectedCategory);
+  const isInFavoritesView = selectedCategory === 'favorites';
   
   return (
     <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '2rem' }}>
@@ -527,6 +533,12 @@ function ProductsView({ productsToShow, selectedCategory, setSelectedCategory, f
       <div style={{ background: '#fff', borderRadius: '16px', padding: '2rem', marginBottom: '2rem' }}>
         <h2 style={{ fontSize: '2rem', fontWeight: '700', color: '#333', marginBottom: '0.5rem' }}>{currentCategory?.name}</h2>
         <p style={{ color: '#666', fontSize: '1rem' }}>{currentCategory?.description}</p>
+        {isInFavoritesView && productsToShow.length > 0 && (
+          <div style={{ marginTop: '1rem', padding: '1rem', background: '#FFF8E1', borderRadius: '8px', border: '2px solid #FFC107', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Trash size={20} color="#FFC107" />
+            <span style={{ fontSize: '0.9rem', color: '#666' }}>Haz clic en el corazón para quitar productos de favoritos</span>
+          </div>
+        )}
       </div>
 
       <div style={{ display: 'flex', gap: '2rem' }}>
@@ -542,8 +554,31 @@ function ProductsView({ productsToShow, selectedCategory, setSelectedCategory, f
                 <div key={p.id} style={{ background: '#1a1a1a', borderRadius: '16px', overflow: 'hidden', transition: 'all 0.3s', animation: `fadeIn 0.5s ease ${idx * 0.05}s backwards` }} onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-4px)'} onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}>
                   <div style={{ position: 'relative' }}>
                     <img src={p.image} alt={p.name} style={{ width: '100%', height: '200px', objectFit: 'cover' }} />
-                    <button onClick={() => toggleFavorite(p.id)} style={{ position: 'absolute', top: '0.75rem', right: '0.75rem', background: favorites.includes(p.id) ? '#FFC107' : 'rgba(255,255,255,0.9)', border: 'none', borderRadius: '50%', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', animation: favorites.includes(p.id) ? 'pulse 0.5s ease' : 'none' }}>
-                      <Heart size={20} color={favorites.includes(p.id) ? '#333' : '#666'} fill={favorites.includes(p.id) ? '#333' : 'none'} />
+                    <button 
+                      onClick={() => toggleFavorite(p.id)} 
+                      style={{ 
+                        position: 'absolute', 
+                        top: '0.75rem', 
+                        right: '0.75rem', 
+                        background: favorites.includes(p.id) ? '#FFC107' : 'rgba(255,255,255,0.9)', 
+                        border: 'none', 
+                        borderRadius: '50%', 
+                        width: '40px', 
+                        height: '40px', 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'center', 
+                        cursor: 'pointer', 
+                        animation: favorites.includes(p.id) ? 'pulse 0.5s ease' : 'none',
+                        boxShadow: isInFavoritesView ? '0 0 0 3px rgba(255,193,7,0.3)' : 'none'
+                      }}
+                      title={isInFavoritesView ? "Quitar de favoritos" : favorites.includes(p.id) ? "Quitar de favoritos" : "Añadir a favoritos"}
+                    >
+                      {isInFavoritesView ? (
+                        <Trash size={20} color="#333" />
+                      ) : (
+                        <Heart size={20} color={favorites.includes(p.id) ? '#333' : '#666'} fill={favorites.includes(p.id) ? '#333' : 'none'} />
+                      )}
                     </button>
                     <button onClick={() => { setSelectedProduct(p); setShowTechSheet(true); }} style={{ position: 'absolute', top: '0.75rem', left: '0.75rem', background: '#FFC107', border: 'none', borderRadius: '50%', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
                       <FileText size={20} color="#333" />
@@ -669,7 +704,6 @@ function OrdersView({ user }) {
   );
 }
 
-// ============ VISTA DE FACTURAS CON PREFERENCIA ============
 function InvoicesView({ user, updateUserPreference }) {
   const [invoices, setInvoices] = useState([]);
   const [billingPreference, setBillingPreference] = useState(user.billingPreference || 'consolidated');
@@ -799,7 +833,6 @@ function InvoicesView({ user, updateUserPreference }) {
   );
 }
 
-// ============ APP PRINCIPAL ============
 function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [currentView, setCurrentView] = useState('catalog');
