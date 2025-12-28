@@ -41,6 +41,19 @@ body {
   background: #FFC107;
   border-radius: 10px;
 }
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .print-content, .print-content * {
+    visibility: visible;
+  }
+  .print-content {
+    position: absolute;
+    left: 0;
+    top: 0;
+  }
+}
 </style>
 </head>
 <body>
@@ -59,6 +72,7 @@ const BACKEND = {
           role: 'client',
           name: 'Restaurante El Teide',
           email: 'teide@rest.com',
+          billingPreference: 'consolidated', // 'consolidated' o 'individual'
           restaurants: [
             { id: 1, name: 'El Teide - Tenerife Norte', island: 'tenerife', address: 'Santa Cruz de Tenerife' },
             { id: 2, name: 'El Teide - La Laguna', island: 'tenerife', address: 'San Cristóbal de La Laguna' }
@@ -71,6 +85,7 @@ const BACKEND = {
           role: 'client',
           name: 'Grupo Atlántico',
           email: 'atlantico@rest.com',
+          billingPreference: 'individual',
           restaurants: [
             { id: 3, name: 'Atlántico - Las Palmas', island: 'gran_canaria', address: 'Las Palmas de Gran Canaria' },
             { id: 4, name: 'Atlántico - Maspalomas', island: 'gran_canaria', address: 'Maspalomas' }
@@ -79,6 +94,7 @@ const BACKEND = {
       ]));
     }
     if (!localStorage.getItem('ava_orders')) localStorage.setItem('ava_orders', JSON.stringify([]));
+    if (!localStorage.getItem('ava_invoices')) localStorage.setItem('ava_invoices', JSON.stringify([]));
     if (!localStorage.getItem('ava_favorites')) localStorage.setItem('ava_favorites', JSON.stringify({}));
   },
   login(u, p) {
@@ -96,17 +112,84 @@ const BACKEND = {
     const u = localStorage.getItem('ava_current_user');
     return u ? JSON.parse(u) : null;
   },
+  updateBillingPreference(userId, preference) {
+    const users = JSON.parse(localStorage.getItem('ava_users') || '[]');
+    const updatedUsers = users.map(u => u.id === userId ? { ...u, billingPreference: preference } : u);
+    localStorage.setItem('ava_users', JSON.stringify(updatedUsers));
+    
+    const currentUser = updatedUsers.find(u => u.id === userId);
+    if (currentUser) {
+      const { password, ...userWithoutPassword } = currentUser;
+      localStorage.setItem('ava_current_user', JSON.stringify(userWithoutPassword));
+    }
+  },
   createOrder(order) {
     const orders = JSON.parse(localStorage.getItem('ava_orders') || '[]');
-    const newOrder = { ...order, id: Date.now(), orderNumber: 'PED-' + Date.now(), createdAt: new Date().toISOString(), status: 'pending' };
+    const newOrder = { ...order, id: Date.now(), orderNumber: `PED-${Date.now()}`, createdAt: new Date().toISOString(), status: 'pending' };
     orders.push(newOrder);
     localStorage.setItem('ava_orders', JSON.stringify(orders));
     order.items.forEach(item => this.addToFavorites(order.userId, item.id));
+    this.createInvoice(newOrder);
     return newOrder;
+  },
+  createInvoice(order) {
+    const invoices = JSON.parse(localStorage.getItem('ava_invoices') || '[]');
+    const newInvoice = {
+      id: Date.now(),
+      invoiceNumber: `FAC-${Date.now()}`,
+      orderId: order.id,
+      orderNumber: order.orderNumber,
+      userId: order.userId,
+      restaurantId: order.restaurantId,
+      restaurant: order.restaurant,
+      items: order.items,
+      subtotal: order.subtotal,
+      tax: order.tax,
+      total: order.total,
+      createdAt: new Date().toISOString(),
+      status: 'pending'
+    };
+    invoices.push(newInvoice);
+    localStorage.setItem('ava_invoices', JSON.stringify(invoices));
+    return newInvoice;
   },
   getOrders(userId) {
     const orders = JSON.parse(localStorage.getItem('ava_orders') || '[]');
     return orders.filter(o => o.userId === userId).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  },
+  getInvoices(userId, billingPreference) {
+    const invoices = JSON.parse(localStorage.getItem('ava_invoices') || '[]');
+    const userInvoices = invoices.filter(i => i.userId === userId);
+    
+    if (billingPreference === 'consolidated') {
+      // Agrupar por mes
+      const grouped = {};
+      userInvoices.forEach(inv => {
+        const date = new Date(inv.createdAt);
+        const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        if (!grouped[monthKey]) {
+          grouped[monthKey] = {
+            id: `consolidated-${monthKey}`,
+            invoiceNumber: `FAC-CONS-${monthKey}`,
+            month: monthKey,
+            invoices: [],
+            subtotal: 0,
+            tax: 0,
+            total: 0,
+            createdAt: inv.createdAt,
+            status: 'consolidated'
+          };
+        }
+        grouped[monthKey].invoices.push(inv);
+        grouped[monthKey].subtotal += inv.subtotal;
+        grouped[monthKey].tax += inv.tax;
+        grouped[monthKey].total += inv.total;
+      });
+      return Object.values(grouped).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    } else {
+      // Facturas individuales por restaurante
+      return userInvoices.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    }
   },
   getFavorites(userId) {
     const f = JSON.parse(localStorage.getItem('ava_favorites') || '{}');
@@ -149,6 +232,7 @@ const PRODUCTS = [
   { id: 4, name: "Pasta Artesanal Fusilli", code: "PAS-004", unit: "Kg", format: "Paquete 500g", price: 6.50, category: 'pasta', image: "https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?w=400", description: "Pasta artesanal de sémola de trigo duro.", techSheet: { origin: "Toscana, Italia", ingredients: "Sémola de trigo duro", drying: "Secado lento 48h" } }
 ];
 
+// ICONOS (los mismos del paso anterior)
 const Heart = ({ size = 24, color = "currentColor", fill = "none" }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill={fill} stroke={color} strokeWidth="2">
     <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
@@ -220,6 +304,22 @@ const Package = ({ size = 24 }) => (
   </svg>
 );
 
+const Download = ({ size = 24 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/>
+    <line x1="12" y1="15" x2="12" y2="3"/>
+  </svg>
+);
+
+const Settings = ({ size = 24 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <circle cx="12" cy="12" r="3"/><path d="M12 1v6m0 6v6m9-9h-6m-6 0H3m15.4 6.4l-4.2-4.2M9.8 9.8 5.6 5.6m12.8 12.8l-4.2-4.2m-8.4 0l-4.2 4.2"/>
+  </svg>
+);
+
+// Componentes anteriores (LoginScreen, Header, RestaurantModal, TechSheetModal, CategoriesView, ProductsView, OrdersView)
+// ... (mantener los mismos del paso anterior)
+
 function LoginScreen({ onLogin }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -261,8 +361,8 @@ function LoginScreen({ onLogin }) {
           </button>
           <div style={{ marginTop: '2rem', padding: '1rem', background: '#f8f8f8', borderRadius: '8px', fontSize: '0.85rem', color: '#666' }}>
             <strong style={{ display: 'block', marginBottom: '0.5rem', color: '#333' }}>Usuarios de prueba:</strong>
-            <div><strong>Cliente 1:</strong> cliente1 / cliente123</div>
-            <div><strong>Cliente 2:</strong> cliente2 / cliente123</div>
+            <div><strong>Cliente 1:</strong> cliente1 / cliente123 (Facturas consolidadas)</div>
+            <div><strong>Cliente 2:</strong> cliente2 / cliente123 (Facturas por restaurante)</div>
           </div>
         </form>
       </div>
@@ -284,6 +384,9 @@ function Header({ user, onLogout, currentView, setCurrentView, selectedRestauran
           </button>
           <button onClick={() => setCurrentView('orders')} style={{ padding: '0.75rem 1.5rem', background: currentView === 'orders' ? '#FFC107' : 'transparent', color: currentView === 'orders' ? '#333' : '#666', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <Package size={18} />Mis Pedidos
+          </button>
+          <button onClick={() => setCurrentView('invoices')} style={{ padding: '0.75rem 1.5rem', background: currentView === 'invoices' ? '#FFC107' : 'transparent', color: currentView === 'invoices' ? '#333' : '#666', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <FileText size={18} />Facturas
           </button>
         </nav>
         <button onClick={onLogout} style={{ padding: '0.75rem 1.5rem', background: '#1a1a1a', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -566,6 +669,137 @@ function OrdersView({ user }) {
   );
 }
 
+// ============ VISTA DE FACTURAS CON PREFERENCIA ============
+function InvoicesView({ user, updateUserPreference }) {
+  const [invoices, setInvoices] = useState([]);
+  const [billingPreference, setBillingPreference] = useState(user.billingPreference || 'consolidated');
+  const [showSettings, setShowSettings] = useState(false);
+
+  useEffect(() => {
+    setInvoices(BACKEND.getInvoices(user.id, billingPreference));
+  }, [user.id, billingPreference]);
+
+  const handlePreferenceChange = (newPreference) => {
+    setBillingPreference(newPreference);
+    BACKEND.updateBillingPreference(user.id, newPreference);
+    updateUserPreference(newPreference);
+    setInvoices(BACKEND.getInvoices(user.id, newPreference));
+    setShowSettings(false);
+  };
+
+  const downloadInvoice = (invoice) => {
+    window.print();
+  };
+
+  return (
+    <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+        <h2 style={{ fontSize: '2rem', fontWeight: '700', color: '#333' }}>Mis Facturas</h2>
+        <button onClick={() => setShowSettings(!showSettings)} style={{ padding: '0.75rem 1.5rem', background: '#f8f8f8', border: '1px solid #e0e0e0', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <Settings size={18} />
+          Configuración
+        </button>
+      </div>
+
+      {showSettings && (
+        <div style={{ background: '#FFF8E1', border: '2px solid #FFC107', borderRadius: '12px', padding: '1.5rem', marginBottom: '2rem' }}>
+          <h3 style={{ fontSize: '1.25rem', fontWeight: '700', marginBottom: '1rem', color: '#333' }}>Preferencia de Facturación</h3>
+          <div style={{ display: 'flex', gap: '1rem' }}>
+            <button 
+              onClick={() => handlePreferenceChange('consolidated')}
+              style={{ 
+                flex: 1, 
+                padding: '1rem', 
+                background: billingPreference === 'consolidated' ? '#FFC107' : '#fff', 
+                border: billingPreference === 'consolidated' ? '2px solid #FFC107' : '2px solid #e0e0e0',
+                borderRadius: '8px', 
+                cursor: 'pointer', 
+                fontWeight: '600',
+                textAlign: 'left'
+              }}
+            >
+              <div style={{ fontSize: '1rem', marginBottom: '0.25rem' }}>📊 Facturas Consolidadas</div>
+              <div style={{ fontSize: '0.85rem', color: '#666' }}>Una factura mensual con todos los restaurantes</div>
+            </button>
+            <button 
+              onClick={() => handlePreferenceChange('individual')}
+              style={{ 
+                flex: 1, 
+                padding: '1rem', 
+                background: billingPreference === 'individual' ? '#FFC107' : '#fff', 
+                border: billingPreference === 'individual' ? '2px solid #FFC107' : '2px solid #e0e0e0',
+                borderRadius: '8px', 
+                cursor: 'pointer', 
+                fontWeight: '600',
+                textAlign: 'left'
+              }}
+            >
+              <div style={{ fontSize: '1rem', marginBottom: '0.25rem' }}>🏪 Facturas por Restaurante</div>
+              <div style={{ fontSize: '0.85rem', color: '#666' }}>Una factura individual por cada restaurante</div>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {invoices.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '4rem 2rem', background: '#fff', borderRadius: '16px' }}>
+          <FileText size={64} color="#ccc" />
+          <h3 style={{ fontSize: '1.5rem', color: '#666', margin: '1rem 0' }}>No tienes facturas aún</h3>
+        </div>
+      ) : (
+        invoices.map(invoice => (
+          <div key={invoice.id} style={{ background: '#fff', border: '2px solid #e0e0e0', borderRadius: '16px', overflow: 'hidden', marginBottom: '1.5rem', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+            <div style={{ background: '#1a1a1a', color: '#fff', padding: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <div style={{ fontSize: '1.5rem', fontWeight: '700', marginBottom: '0.5rem' }}>
+                  {invoice.status === 'consolidated' ? 
+                    `Factura Consolidada - ${new Date(invoice.createdAt).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}` : 
+                    `Factura ${invoice.invoiceNumber}`
+                  }
+                </div>
+                {invoice.status === 'consolidated' ? (
+                  <div style={{ fontSize: '0.9rem', opacity: 0.8 }}>{invoice.invoices.length} pedido{invoice.invoices.length !== 1 ? 's' : ''} incluidos</div>
+                ) : (
+                  <div style={{ fontSize: '0.9rem', opacity: 0.8 }}>Pedido: {invoice.orderNumber} - {invoice.restaurant.name}</div>
+                )}
+              </div>
+              <button onClick={() => downloadInvoice(invoice)} style={{ padding: '0.75rem 1.5rem', background: '#FFC107', color: '#333', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Download size={18} />
+                Descargar PDF
+              </button>
+            </div>
+            <div style={{ padding: '2rem' }}>
+              {invoice.status === 'consolidated' && (
+                <div style={{ marginBottom: '1.5rem', padding: '1rem', background: '#f8f8f8', borderRadius: '8px' }}>
+                  <h4 style={{ fontSize: '1rem', fontWeight: '700', marginBottom: '0.75rem', color: '#333' }}>Pedidos Incluidos:</h4>
+                  {invoice.invoices.map(inv => (
+                    <div key={inv.id} style={{ padding: '0.75rem', background: '#fff', borderRadius: '8px', marginBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ fontSize: '0.9rem' }}>{inv.restaurant.name} - {inv.orderNumber}</span>
+                      <span style={{ fontSize: '0.9rem', fontWeight: '600', color: '#FFC107' }}>€{inv.total.toFixed(2)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div style={{ background: '#FFF8E1', padding: '1.5rem', borderRadius: '12px', border: '2px solid #FFC107' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                  <span>Subtotal:</span><span>€{invoice.subtotal.toFixed(2)}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                  <span>IGIC (7%):</span><span>€{invoice.tax.toFixed(2)}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '0.75rem', borderTop: '2px solid #FFC107', fontSize: '1.5rem', fontWeight: '700' }}>
+                  <span>TOTAL:</span><span style={{ color: '#FFC107' }}>€{invoice.total.toFixed(2)}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        ))
+      )}
+    </div>
+  );
+}
+
+// ============ APP PRINCIPAL ============
 function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [currentView, setCurrentView] = useState('catalog');
@@ -657,6 +891,10 @@ function App() {
     window.location.reload();
   };
 
+  const updateUserPreference = (preference) => {
+    setCurrentUser({ ...currentUser, billingPreference: preference });
+  };
+
   if (!currentUser) return <LoginScreen onLogin={handleLogin} />;
 
   let productsToShow = [];
@@ -684,6 +922,7 @@ function App() {
       )}
 
       {currentView === 'orders' && <OrdersView user={currentUser} />}
+      {currentView === 'invoices' && <InvoicesView user={currentUser} updateUserPreference={updateUserPreference} />}
 
       {showRestaurantModal && currentUser.restaurants && (
         <RestaurantModal user={currentUser} selectedRestaurant={selectedRestaurant} setSelectedRestaurant={setSelectedRestaurant} onClose={() => setShowRestaurantModal(false)} />
