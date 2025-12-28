@@ -353,6 +353,12 @@ const Sparkles = ({ size = 24 }) => (
   </svg>
 );
 
+const Menu = ({ size = 24 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/>
+  </svg>
+);
+
 function LoginScreen({ onLogin }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -404,31 +410,75 @@ function LoginScreen({ onLogin }) {
 }
 
 function Header({ user, onLogout, currentView, setCurrentView, selectedRestaurant }) {
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth <= 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
   return (
-    <header style={{ background: '#fff', borderBottom: '1px solid #e0e0e0', position: 'sticky', top: 0, zIndex: 100 }}>
-      <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '1rem 2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <span style={{ fontSize: '1.5rem', fontWeight: '700', color: '#333' }}>AVA</span>
-          <span style={{ fontSize: '0.85rem', color: '#999' }}>SELECCIÓN</span>
+    <>
+      <header style={{ background: '#fff', borderBottom: '1px solid #e0e0e0', position: 'sticky', top: 0, zIndex: 100 }}>
+        <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span style={{ fontSize: '1.5rem', fontWeight: '700', color: '#333' }}>AVA</span>
+            <span style={{ fontSize: '0.85rem', color: '#999' }}>SELECCIÓN</span>
+          </div>
+
+          {!isMobile ? (
+            <>
+              <nav style={{ display: 'flex', gap: '0.5rem' }}>
+                <button onClick={() => setCurrentView('catalog')} style={{ padding: '0.75rem 1.5rem', background: currentView === 'catalog' ? '#FFC107' : 'transparent', color: currentView === 'catalog' ? '#333' : '#666', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <ShoppingCart size={18} />Catálogo
+                </button>
+                <button onClick={() => setCurrentView('orders')} style={{ padding: '0.75rem 1.5rem', background: currentView === 'orders' ? '#FFC107' : 'transparent', color: currentView === 'orders' ? '#333' : '#666', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Package size={18} />Mis Pedidos
+                </button>
+                <button onClick={() => setCurrentView('invoices')} style={{ padding: '0.75rem 1.5rem', background: currentView === 'invoices' ? '#FFC107' : 'transparent', color: currentView === 'invoices' ? '#333' : '#666', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <FileText size={18} />Facturas
+                </button>
+              </nav>
+              <button onClick={onLogout} style={{ padding: '0.75rem 1.5rem', background: '#1a1a1a', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <User size={18} /><span style={{ maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{selectedRestaurant ? selectedRestaurant.name : user.name}</span>
+              </button>
+            </>
+          ) : (
+            <button onClick={() => setShowMobileMenu(!showMobileMenu)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.5rem' }}>
+              <Menu size={28} color="#333" />
+            </button>
+          )}
         </div>
-        <nav style={{ display: 'flex', gap: '0.5rem' }}>
-          <button onClick={() => setCurrentView('catalog')} style={{ padding: '0.75rem 1.5rem', background: currentView === 'catalog' ? '#FFC107' : 'transparent', color: currentView === 'catalog' ? '#333' : '#666', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <ShoppingCart size={18} />Catálogo
-          </button>
-          <button onClick={() => setCurrentView('orders')} style={{ padding: '0.75rem 1.5rem', background: currentView === 'orders' ? '#FFC107' : 'transparent', color: currentView === 'orders' ? '#333' : '#666', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Package size={18} />Mis Pedidos
-          </button>
-          <button onClick={() => setCurrentView('invoices')} style={{ padding: '0.75rem 1.5rem', background: currentView === 'invoices' ? '#FFC107' : 'transparent', color: currentView === 'invoices' ? '#333' : '#666', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <FileText size={18} />Facturas
-          </button>
-        </nav>
-        <button onClick={onLogout} style={{ padding: '0.75rem 1.5rem', background: '#1a1a1a', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <User size={18} />{selectedRestaurant ? selectedRestaurant.name : user.name}
-        </button>
-      </div>
-    </header>
+      </header>
+
+      {isMobile && showMobileMenu && (
+        <div style={{ position: 'fixed', top: '60px', left: 0, right: 0, background: '#fff', zIndex: 99, borderBottom: '1px solid #e0e0e0', animation: 'slideUp 0.3s ease', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} onClick={() => setShowMobileMenu(false)}>
+          <div style={{ padding: '1rem' }}>
+            <button onClick={() => { setCurrentView('catalog'); setShowMobileMenu(false); }} style={{ width: '100%', padding: '1rem', background: currentView === 'catalog' ? '#FFF8E1' : 'transparent', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem', color: currentView === 'catalog' ? '#FFC107' : '#333' }}>
+              <ShoppingCart size={22} />Catálogo
+            </button>
+            <button onClick={() => { setCurrentView('orders'); setShowMobileMenu(false); }} style={{ width: '100%', padding: '1rem', background: currentView === 'orders' ? '#FFF8E1' : 'transparent', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem', color: currentView === 'orders' ? '#FFC107' : '#333' }}>
+              <Package size={22} />Mis Pedidos
+            </button>
+            <button onClick={() => { setCurrentView('invoices'); setShowMobileMenu(false); }} style={{ width: '100%', padding: '1rem', background: currentView === 'invoices' ? '#FFF8E1' : 'transparent', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem', color: currentView === 'invoices' ? '#FFC107' : '#333' }}>
+              <FileText size={22} />Facturas
+            </button>
+            <div style={{ borderTop: '1px solid #e0e0e0', marginTop: '0.5rem', paddingTop: '0.5rem' }}>
+              <div style={{ padding: '0.75rem', fontSize: '0.85rem', color: '#666', fontWeight: '600' }}>{selectedRestaurant ? selectedRestaurant.name : user.name}</div>
+              <button onClick={() => { onLogout(); setShowMobileMenu(false); }} style={{ width: '100%', padding: '1rem', background: '#1a1a1a', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '0.75rem', justifyContent: 'center' }}>
+                <User size={20} />Cerrar Sesión
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
+
 
 function RestaurantModal({ user, selectedRestaurant, setSelectedRestaurant, onClose }) {
   return (
