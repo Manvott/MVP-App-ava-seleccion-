@@ -48,9 +48,8 @@ body {
 <script type="text/babel">
 const { useState, useEffect } = React;
 
-// ============ BACKEND SIMULADO ============
 const BACKEND = {
-  init: function() {
+  init() {
     if (!localStorage.getItem('ava_users')) {
       localStorage.setItem('ava_users', JSON.stringify([
         {
@@ -80,11 +79,9 @@ const BACKEND = {
       ]));
     }
     if (!localStorage.getItem('ava_orders')) localStorage.setItem('ava_orders', JSON.stringify([]));
-    if (!localStorage.getItem('ava_invoices')) localStorage.setItem('ava_invoices', JSON.stringify([]));
     if (!localStorage.getItem('ava_favorites')) localStorage.setItem('ava_favorites', JSON.stringify({}));
   },
-
-  login: function(u, p) {
+  login(u, p) {
     const users = JSON.parse(localStorage.getItem('ava_users') || '[]');
     const user = users.find(x => x.username === u && x.password === p);
     if (user) {
@@ -94,44 +91,28 @@ const BACKEND = {
     }
     return { success: false, message: 'Usuario o contraseña incorrectos' };
   },
-
-  logout: function() {
-    localStorage.removeItem('ava_current_user');
-  },
-
-  getCurrentUser: function() {
+  logout() { localStorage.removeItem('ava_current_user'); },
+  getCurrentUser() {
     const u = localStorage.getItem('ava_current_user');
     return u ? JSON.parse(u) : null;
   },
-
-  createOrder: function(order) {
+  createOrder(order) {
     const orders = JSON.parse(localStorage.getItem('ava_orders') || '[]');
-    const newOrder = {
-      ...order,
-      id: Date.now(),
-      orderNumber: 'PED-' + Date.now(),
-      createdAt: new Date().toISOString(),
-      status: 'pending'
-    };
+    const newOrder = { ...order, id: Date.now(), orderNumber: 'PED-' + Date.now(), createdAt: new Date().toISOString(), status: 'pending' };
     orders.push(newOrder);
     localStorage.setItem('ava_orders', JSON.stringify(orders));
     order.items.forEach(item => this.addToFavorites(order.userId, item.id));
     return newOrder;
   },
-
-  getOrders: function(userId) {
+  getOrders(userId) {
     const orders = JSON.parse(localStorage.getItem('ava_orders') || '[]');
-    return orders.filter(o => o.userId === userId).sort((a, b) => 
-      new Date(b.createdAt) - new Date(a.createdAt)
-    );
+    return orders.filter(o => o.userId === userId).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   },
-
-  getFavorites: function(userId) {
+  getFavorites(userId) {
     const f = JSON.parse(localStorage.getItem('ava_favorites') || '{}');
     return f[userId] || [];
   },
-
-  addToFavorites: function(userId, productId) {
+  addToFavorites(userId, productId) {
     const f = JSON.parse(localStorage.getItem('ava_favorites') || '{}');
     if (!f[userId]) f[userId] = [];
     if (!f[userId].includes(productId)) {
@@ -139,8 +120,7 @@ const BACKEND = {
       localStorage.setItem('ava_favorites', JSON.stringify(f));
     }
   },
-
-  removeFromFavorites: function(userId, productId) {
+  removeFromFavorites(userId, productId) {
     const f = JSON.parse(localStorage.getItem('ava_favorites') || '{}');
     if (f[userId]) {
       f[userId] = f[userId].filter(id => id !== productId);
@@ -148,94 +128,27 @@ const BACKEND = {
     }
   }
 };
-
 BACKEND.init();
 
-// ============ DATOS ============
 const ISLANDS = [
   { id: 'tenerife', name: 'Tenerife', deliveryDays: 'Martes y Viernes' },
   { id: 'gran_canaria', name: 'Gran Canaria', deliveryDays: 'Lunes y Jueves' }
 ];
 
 const CATEGORIES = [
-  {
-    id: 'favorites',
-    name: 'Mis Favoritos',
-    description: 'Productos que has comprado anteriormente',
-    image: 'https://images.unsplash.com/photo-1495195134817-aeb325a55b65?w=600&h=400&fit=crop'
-  },
-  {
-    id: 'aceites',
-    name: 'Aceites y Vinagres',
-    description: 'Aceites premium y vinagres selectos',
-    image: 'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?w=600&h=400&fit=crop'
-  },
-  {
-    id: 'condimentos',
-    name: 'Condimentos y Especias',
-    description: 'Sales, pimientas y especias del mundo',
-    image: 'https://images.unsplash.com/photo-1596040033229-a0b3b46fe2b5?w=600&h=400&fit=crop'
-  },
-  {
-    id: 'pasta',
-    name: 'Pastas y Granos',
-    description: 'Pastas artesanales y arroces especiales',
-    image: 'https://images.unsplash.com/photo-1551462147-ff29053bfc14?w=600&h=400&fit=crop'
-  }
+  { id: 'favorites', name: 'Mis Favoritos', description: 'Productos que has comprado anteriormente', image: 'https://images.unsplash.com/photo-1495195134817-aeb325a55b65?w=600&h=400&fit=crop' },
+  { id: 'aceites', name: 'Aceites y Vinagres', description: 'Aceites premium y vinagres selectos', image: 'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?w=600&h=400&fit=crop' },
+  { id: 'condimentos', name: 'Condimentos y Especias', description: 'Sales, pimientas y especias del mundo', image: 'https://images.unsplash.com/photo-1596040033229-a0b3b46fe2b5?w=600&h=400&fit=crop' },
+  { id: 'pasta', name: 'Pastas y Granos', description: 'Pastas artesanales y arroces especiales', image: 'https://images.unsplash.com/photo-1551462147-ff29053bfc14?w=600&h=400&fit=crop' }
 ];
 
 const PRODUCTS = [
-  {
-    id: 1,
-    name: "Aceite de Oliva Virgen Extra",
-    code: "AOL-001",
-    unit: "Litro",
-    format: "Botella 1L",
-    price: 24.50,
-    category: 'aceites',
-    image: "https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?w=400",
-    description: "Aceite de oliva virgen extra de primera presión en frío.",
-    techSheet: { origin: "Andalucía, España", acidity: "0.2%", extraction: "Primera presión en frío" }
-  },
-  {
-    id: 2,
-    name: "Vinagre Balsámico de Módena",
-    code: "VIN-002",
-    unit: "ml",
-    format: "Botella 500ml",
-    price: 18.90,
-    category: 'aceites',
-    image: "https://images.unsplash.com/photo-1609501676725-7186f017a4b7?w=400",
-    description: "Vinagre balsámico tradicional envejecido 8 años.",
-    techSheet: { origin: "Módena, Italia", aging: "8 años", density: "1.28" }
-  },
-  {
-    id: 3,
-    name: "Sal Rosa del Himalaya",
-    code: "SAL-003",
-    unit: "Kg",
-    format: "Bolsa 1Kg",
-    price: 12.50,
-    category: 'condimentos',
-    image: "https://images.unsplash.com/photo-1607672632458-9eb56696346b?w=400",
-    description: "Sal rosa pura del Himalaya, rica en minerales.",
-    techSheet: { origin: "Punjab, Pakistán", purity: "98%", minerals: "84 minerales traza" }
-  },
-  {
-    id: 4,
-    name: "Pasta Artesanal Fusilli",
-    code: "PAS-004",
-    unit: "Kg",
-    format: "Paquete 500g",
-    price: 6.50,
-    category: 'pasta',
-    image: "https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?w=400",
-    description: "Pasta artesanal de sémola de trigo duro.",
-    techSheet: { origin: "Toscana, Italia", ingredients: "Sémola de trigo duro", drying: "Secado lento 48h" }
-  }
+  { id: 1, name: "Aceite de Oliva Virgen Extra", code: "AOL-001", unit: "Litro", format: "Botella 1L", price: 24.50, category: 'aceites', image: "https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?w=400", description: "Aceite de oliva virgen extra de primera presión en frío.", techSheet: { origin: "Andalucía, España", acidity: "0.2%", extraction: "Primera presión en frío" } },
+  { id: 2, name: "Vinagre Balsámico de Módena", code: "VIN-002", unit: "ml", format: "Botella 500ml", price: 18.90, category: 'aceites', image: "https://images.unsplash.com/photo-1609501676725-7186f017a4b7?w=400", description: "Vinagre balsámico tradicional envejecido 8 años.", techSheet: { origin: "Módena, Italia", aging: "8 años", density: "1.28" } },
+  { id: 3, name: "Sal Rosa del Himalaya", code: "SAL-003", unit: "Kg", format: "Bolsa 1Kg", price: 12.50, category: 'condimentos', image: "https://images.unsplash.com/photo-1607672632458-9eb56696346b?w=400", description: "Sal rosa pura del Himalaya, rica en minerales.", techSheet: { origin: "Punjab, Pakistán", purity: "98%", minerals: "84 minerales traza" } },
+  { id: 4, name: "Pasta Artesanal Fusilli", code: "PAS-004", unit: "Kg", format: "Paquete 500g", price: 6.50, category: 'pasta', image: "https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?w=400", description: "Pasta artesanal de sémola de trigo duro.", techSheet: { origin: "Toscana, Italia", ingredients: "Sémola de trigo duro", drying: "Secado lento 48h" } }
 ];
 
-// ============ ICONOS SVG ============
 const Heart = ({ size = 24, color = "currentColor", fill = "none" }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill={fill} stroke={color} strokeWidth="2">
     <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
@@ -244,8 +157,7 @@ const Heart = ({ size = 24, color = "currentColor", fill = "none" }) => (
 
 const Plus = ({ size = 24 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <line x1="12" y1="5" x2="12" y2="19"/>
-    <line x1="5" y1="12" x2="19" y2="12"/>
+    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
   </svg>
 );
 
@@ -257,8 +169,7 @@ const Minus = ({ size = 24 }) => (
 
 const ShoppingCart = ({ size = 24 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <circle cx="9" cy="21" r="1"/>
-    <circle cx="20" cy="21" r="1"/>
+    <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
     <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
   </svg>
 );
@@ -272,38 +183,32 @@ const FileText = ({ size = 24 }) => (
 
 const User = ({ size = 24 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-    <circle cx="12" cy="7" r="4"/>
+    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
   </svg>
 );
 
 const X = ({ size = 24 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <line x1="18" y1="6" x2="6" y2="18"/>
-    <line x1="6" y1="6" x2="18" y2="18"/>
+    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
   </svg>
 );
 
 const MapPin = ({ size = 24 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
-    <circle cx="12" cy="10" r="3"/>
+    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
   </svg>
 );
 
 const Truck = ({ size = 24 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <rect x="1" y="3" width="15" height="13"/>
-    <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/>
-    <circle cx="5.5" cy="18.5" r="2.5"/>
-    <circle cx="18.5" cy="18.5" r="2.5"/>
+    <rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/>
+    <circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>
   </svg>
 );
 
 const Info = ({ size = 24 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <circle cx="12" cy="12" r="10"/>
-    <line x1="12" y1="16" x2="12" y2="12"/>
+    <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/>
     <line x1="12" y1="8" x2="12.01" y2="8"/>
   </svg>
 );
@@ -311,12 +216,10 @@ const Info = ({ size = 24 }) => (
 const Package = ({ size = 24 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
     <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
-    <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
-    <line x1="12" y1="22.08" x2="12" y2="12"/>
+    <polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>
   </svg>
 );
 
-// ============ PANTALLA DE LOGIN ============
 function LoginScreen({ onLogin }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -327,156 +230,37 @@ function LoginScreen({ onLogin }) {
     e.preventDefault();
     setLoading(true);
     setError('');
-    
     setTimeout(() => {
       const result = BACKEND.login(username, password);
-      if (result.success) {
-        onLogin(result.user);
-      } else {
-        setError(result.message);
-      }
+      if (result.success) onLogin(result.user);
+      else setError(result.message);
       setLoading(false);
     }, 500);
   };
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      background: 'linear-gradient(135deg, #1a1a1a, #2a2a2a)',
-      padding: '2rem'
-    }}>
-      <div style={{
-        background: '#fff',
-        borderRadius: '20px',
-        boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
-        maxWidth: '450px',
-        width: '100%',
-        overflow: 'hidden',
-        animation: 'slideUp 0.5s ease'
-      }}>
-        <div style={{
-          background: '#FFC107',
-          padding: '2rem',
-          textAlign: 'center'
-        }}>
-          <h1 style={{
-            fontSize: '2.5rem',
-            fontWeight: '700',
-            margin: '0 0 0.5rem 0',
-            color: '#333'
-          }}>
-            AVA SELECCIÓN
-          </h1>
-          <p style={{ margin: 0, color: '#333', fontSize: '0.95rem' }}>
-            Consultor Gastronómico
-          </p>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #1a1a1a, #2a2a2a)', padding: '2rem' }}>
+      <div style={{ background: '#fff', borderRadius: '20px', boxShadow: '0 20px 60px rgba(0,0,0,0.3)', maxWidth: '450px', width: '100%', overflow: 'hidden', animation: 'slideUp 0.5s ease' }}>
+        <div style={{ background: '#FFC107', padding: '2rem', textAlign: 'center' }}>
+          <h1 style={{ fontSize: '2.5rem', fontWeight: '700', margin: '0 0 0.5rem 0', color: '#333' }}>AVA SELECCIÓN</h1>
+          <p style={{ margin: 0, color: '#333', fontSize: '0.95rem' }}>Consultor Gastronómico</p>
         </div>
-        
         <form onSubmit={handleSubmit} style={{ padding: '2rem' }}>
-          <h2 style={{
-            fontSize: '1.5rem',
-            marginBottom: '1.5rem',
-            color: '#333',
-            textAlign: 'center'
-          }}>
-            Iniciar Sesión
-          </h2>
-          
-          {error && (
-            <div style={{
-              background: '#ffebee',
-              color: '#c62828',
-              padding: '1rem',
-              borderRadius: '8px',
-              marginBottom: '1rem',
-              fontSize: '0.9rem'
-            }}>
-              {error}
-            </div>
-          )}
-          
+          <h2 style={{ fontSize: '1.5rem', marginBottom: '1.5rem', color: '#333', textAlign: 'center' }}>Iniciar Sesión</h2>
+          {error && <div style={{ background: '#ffebee', color: '#c62828', padding: '1rem', borderRadius: '8px', marginBottom: '1rem', fontSize: '0.9rem' }}>{error}</div>}
           <div style={{ marginBottom: '1.5rem' }}>
-            <label style={{
-              display: 'block',
-              marginBottom: '0.5rem',
-              fontWeight: '600',
-              color: '#333'
-            }}>
-              Usuario
-            </label>
-            <input
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              required
-              style={{
-                width: '100%',
-                padding: '0.75rem',
-                border: '2px solid #e0e0e0',
-                borderRadius: '8px',
-                fontSize: '1rem',
-                outline: 'none'
-              }}
-            />
+            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', color: '#333' }}>Usuario</label>
+            <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} required style={{ width: '100%', padding: '0.75rem', border: '2px solid #e0e0e0', borderRadius: '8px', fontSize: '1rem', outline: 'none' }} />
           </div>
-          
           <div style={{ marginBottom: '2rem' }}>
-            <label style={{
-              display: 'block',
-              marginBottom: '0.5rem',
-              fontWeight: '600',
-              color: '#333'
-            }}>
-              Contraseña
-            </label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              style={{
-                width: '100%',
-                padding: '0.75rem',
-                border: '2px solid #e0e0e0',
-                borderRadius: '8px',
-                fontSize: '1rem',
-                outline: 'none'
-              }}
-            />
+            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', color: '#333' }}>Contraseña</label>
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required style={{ width: '100%', padding: '0.75rem', border: '2px solid #e0e0e0', borderRadius: '8px', fontSize: '1rem', outline: 'none' }} />
           </div>
-          
-          <button
-            type="submit"
-            disabled={loading}
-            style={{
-              width: '100%',
-              padding: '1rem',
-              background: loading ? '#ccc' : '#FFC107',
-              color: '#333',
-              border: 'none',
-              borderRadius: '8px',
-              fontSize: '1.1rem',
-              fontWeight: '700',
-              cursor: loading ? 'not-allowed' : 'pointer'
-            }}
-          >
+          <button type="submit" disabled={loading} style={{ width: '100%', padding: '1rem', background: loading ? '#ccc' : '#FFC107', color: '#333', border: 'none', borderRadius: '8px', fontSize: '1.1rem', fontWeight: '700', cursor: loading ? 'not-allowed' : 'pointer' }}>
             {loading ? 'Iniciando...' : 'Iniciar Sesión'}
           </button>
-          
-          <div style={{
-            marginTop: '2rem',
-            padding: '1rem',
-            background: '#f8f8f8',
-            borderRadius: '8px',
-            fontSize: '0.85rem',
-            color: '#666'
-          }}>
-            <strong style={{ display: 'block', marginBottom: '0.5rem', color: '#333' }}>
-              Usuarios de prueba:
-            </strong>
+          <div style={{ marginTop: '2rem', padding: '1rem', background: '#f8f8f8', borderRadius: '8px', fontSize: '0.85rem', color: '#666' }}>
+            <strong style={{ display: 'block', marginBottom: '0.5rem', color: '#333' }}>Usuarios de prueba:</strong>
             <div><strong>Cliente 1:</strong> cliente1 / cliente123</div>
             <div><strong>Cliente 2:</strong> cliente2 / cliente123</div>
           </div>
@@ -486,183 +270,49 @@ function LoginScreen({ onLogin }) {
   );
 }
 
-// ============ HEADER ============
 function Header({ user, onLogout, currentView, setCurrentView, selectedRestaurant }) {
   return (
-    <header style={{
-      background: '#fff',
-      borderBottom: '1px solid #e0e0e0',
-      position: 'sticky',
-      top: 0,
-      zIndex: 100
-    }}>
-      <div style={{
-        maxWidth: '1400px',
-        margin: '0 auto',
-        padding: '1rem 2rem',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center'
-      }}>
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.5rem'
-        }}>
+    <header style={{ background: '#fff', borderBottom: '1px solid #e0e0e0', position: 'sticky', top: 0, zIndex: 100 }}>
+      <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '1rem 2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <span style={{ fontSize: '1.5rem', fontWeight: '700', color: '#333' }}>AVA</span>
           <span style={{ fontSize: '0.85rem', color: '#999' }}>SELECCIÓN</span>
         </div>
-
         <nav style={{ display: 'flex', gap: '0.5rem' }}>
-          <button
-            onClick={() => setCurrentView('catalog')}
-            style={{
-              padding: '0.75rem 1.5rem',
-              background: currentView === 'catalog' ? '#FFC107' : 'transparent',
-              color: currentView === 'catalog' ? '#333' : '#666',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              fontWeight: '600',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem'
-            }}
-          >
-            <ShoppingCart size={18} />
-            Catálogo
+          <button onClick={() => setCurrentView('catalog')} style={{ padding: '0.75rem 1.5rem', background: currentView === 'catalog' ? '#FFC107' : 'transparent', color: currentView === 'catalog' ? '#333' : '#666', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <ShoppingCart size={18} />Catálogo
           </button>
-          <button
-            onClick={() => setCurrentView('orders')}
-            style={{
-              padding: '0.75rem 1.5rem',
-              background: currentView === 'orders' ? '#FFC107' : 'transparent',
-              color: currentView === 'orders' ? '#333' : '#666',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              fontWeight: '600',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem'
-            }}
-          >
-            <Package size={18} />
-            Mis Pedidos
+          <button onClick={() => setCurrentView('orders')} style={{ padding: '0.75rem 1.5rem', background: currentView === 'orders' ? '#FFC107' : 'transparent', color: currentView === 'orders' ? '#333' : '#666', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Package size={18} />Mis Pedidos
           </button>
         </nav>
-
-        <button
-          onClick={onLogout}
-          style={{
-            padding: '0.75rem 1.5rem',
-            background: '#1a1a1a',
-            color: '#fff',
-            border: 'none',
-            borderRadius: '8px',
-            cursor: 'pointer',
-            fontWeight: '600',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem'
-          }}
-        >
-          <User size={18} />
-          {selectedRestaurant ? selectedRestaurant.name : user.name}
+        <button onClick={onLogout} style={{ padding: '0.75rem 1.5rem', background: '#1a1a1a', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <User size={18} />{selectedRestaurant ? selectedRestaurant.name : user.name}
         </button>
       </div>
     </header>
   );
 }
 
-// ============ MODAL SELECTOR DE RESTAURANTES ============
 function RestaurantModal({ user, selectedRestaurant, setSelectedRestaurant, onClose }) {
   return (
-    <div 
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        background: 'rgba(0,0,0,0.6)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 1000,
-        padding: '2rem'
-      }}
-      onClick={onClose}
-    >
-      <div 
-        style={{
-          background: '#fff',
-          borderRadius: '20px',
-          maxWidth: '600px',
-          width: '100%',
-          animation: 'slideUp 0.3s ease'
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div style={{
-          background: '#FFC107',
-          padding: '2rem',
-          borderRadius: '20px 20px 0 0',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
-        }}>
-          <h2 style={{ margin: 0, fontSize: '1.75rem', fontWeight: '700' }}>
-            Selecciona un Restaurante
-          </h2>
-          <button
-            onClick={onClose}
-            style={{
-              background: 'rgba(0,0,0,0.1)',
-              border: 'none',
-              borderRadius: '50%',
-              width: '36px',
-              height: '36px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer'
-            }}
-          >
+    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '2rem' }} onClick={onClose}>
+      <div style={{ background: '#fff', borderRadius: '20px', maxWidth: '600px', width: '100%', animation: 'slideUp 0.3s ease' }} onClick={(e) => e.stopPropagation()}>
+        <div style={{ background: '#FFC107', padding: '2rem', borderRadius: '20px 20px 0 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h2 style={{ margin: 0, fontSize: '1.75rem', fontWeight: '700' }}>Selecciona un Restaurante</h2>
+          <button onClick={onClose} style={{ background: 'rgba(0,0,0,0.1)', border: 'none', borderRadius: '50%', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
             <X size={20} color="#333" />
           </button>
         </div>
-        
         <div style={{ padding: '2rem' }}>
           {user.restaurants && user.restaurants.map(restaurant => (
-            <button
-              key={restaurant.id}
-              onClick={() => {
-                setSelectedRestaurant(restaurant);
-                onClose();
-              }}
-              style={{
-                width: '100%',
-                padding: '1.5rem',
-                background: selectedRestaurant?.id === restaurant.id ? '#FFF8E1' : '#f8f8f8',
-                border: selectedRestaurant?.id === restaurant.id ? '2px solid #FFC107' : '2px solid #e0e0e0',
-                borderRadius: '12px',
-                marginBottom: '1rem',
-                cursor: 'pointer',
-                textAlign: 'left'
-              }}
-            >
-              <div style={{ fontSize: '1.125rem', fontWeight: '700', color: '#333', marginBottom: '0.5rem' }}>
-                {restaurant.name}
-              </div>
+            <button key={restaurant.id} onClick={() => { setSelectedRestaurant(restaurant); onClose(); }} style={{ width: '100%', padding: '1.5rem', background: selectedRestaurant?.id === restaurant.id ? '#FFF8E1' : '#f8f8f8', border: selectedRestaurant?.id === restaurant.id ? '2px solid #FFC107' : '2px solid #e0e0e0', borderRadius: '12px', marginBottom: '1rem', cursor: 'pointer', textAlign: 'left' }}>
+              <div style={{ fontSize: '1.125rem', fontWeight: '700', color: '#333', marginBottom: '0.5rem' }}>{restaurant.name}</div>
               <div style={{ fontSize: '0.9rem', color: '#666', display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                <MapPin size={16} />
-                {restaurant.address}
+                <MapPin size={16} />{restaurant.address}
               </div>
               <div style={{ fontSize: '0.9rem', color: '#FFC107', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Truck size={16} />
-                {ISLANDS.find(i => i.id === restaurant.island)?.name} - 
-                Reparto: {ISLANDS.find(i => i.id === restaurant.island)?.deliveryDays}
+                <Truck size={16} />{ISLANDS.find(i => i.id === restaurant.island)?.name} - Reparto: {ISLANDS.find(i => i.id === restaurant.island)?.deliveryDays}
               </div>
             </button>
           ))}
@@ -672,31 +322,63 @@ function RestaurantModal({ user, selectedRestaurant, setSelectedRestaurant, onCl
   );
 }
 
-// ============ VISTA DE CATEGORÍAS ============
+function TechSheetModal({ product, onClose }) {
+  return (
+    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '2rem' }} onClick={onClose}>
+      <div style={{ background: '#fff', borderRadius: '20px', maxWidth: '600px', width: '100%', maxHeight: '80vh', overflow: 'auto', animation: 'slideUp 0.3s ease' }} onClick={(e) => e.stopPropagation()}>
+        <div style={{ position: 'relative', height: '200px', overflow: 'hidden' }}>
+          <img src={product.image} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'linear-gradient(to bottom,rgba(0,0,0,0.3),rgba(0,0,0,0.6))' }} />
+          <button onClick={onClose} style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'rgba(255,255,255,0.95)', border: 'none', borderRadius: '50%', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+            <X size={20} color="#333" />
+          </button>
+          <div style={{ position: 'absolute', bottom: '1.5rem', left: '2rem', color: '#fff' }}>
+            <h2 style={{ margin: '0 0 0.5rem 0', fontSize: '2rem', fontWeight: '700' }}>{product.name}</h2>
+            <span style={{ padding: '0.375rem 0.875rem', background: 'rgba(255,255,255,0.25)', borderRadius: '20px', fontSize: '0.875rem' }}>{product.code}</span>
+          </div>
+        </div>
+        <div style={{ padding: '2rem' }}>
+          <div style={{ marginBottom: '2rem', paddingBottom: '2rem', borderBottom: '2px solid #e0e0e0' }}>
+            <h3 style={{ fontSize: '1.25rem', color: '#333', marginBottom: '1rem', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Info size={20} color="#FFC107" />Descripción
+            </h3>
+            <p style={{ fontSize: '1rem', lineHeight: '1.7', color: '#666' }}>{product.description}</p>
+          </div>
+          <div>
+            <h3 style={{ fontSize: '1.25rem', color: '#333', marginBottom: '1.5rem', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <FileText size={20} color="#FFC107" />Ficha Técnica
+            </h3>
+            <div style={{ display: 'grid', gap: '1rem' }}>
+              {Object.entries(product.techSheet).map(([key, value]) => (
+                <div key={key} style={{ display: 'flex', padding: '1rem', background: '#f8f8f8', borderRadius: '12px', borderLeft: '4px solid #FFC107' }}>
+                  <span style={{ fontWeight: '700', color: '#333', minWidth: '150px', textTransform: 'capitalize' }}>{key}:</span>
+                  <span style={{ color: '#666', flex: 1 }}>{value}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div style={{ marginTop: '2rem', padding: '1.5rem', background: '#FFF8E1', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '2px solid #FFC107' }}>
+            <div>
+              <div style={{ fontSize: '0.875rem', color: '#666', marginBottom: '0.25rem' }}>Precio por {product.unit}</div>
+              <div style={{ fontSize: '2.25rem', fontWeight: '700', color: '#FFC107' }}>€{product.price.toFixed(2)}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function CategoriesView({ setSelectedCategory, favorites, selectedRestaurant, setShowRestaurantModal }) {
   return (
     <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '2rem' }}>
-      <div style={{
-        background: '#fff',
-        padding: '1.5rem',
-        borderRadius: '12px',
-        marginBottom: '2rem',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center'
-      }}>
+      <div style={{ background: '#fff', padding: '1.5rem', borderRadius: '12px', marginBottom: '2rem', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <div style={{ fontSize: '0.85rem', color: '#999', marginBottom: '0.25rem' }}>
-            Pedido para:
-          </div>
-          <div style={{ fontSize: '1.25rem', fontWeight: '700', color: '#333', marginBottom: '0.25rem' }}>
-            {selectedRestaurant ? selectedRestaurant.name : 'Selecciona un restaurante'}
-          </div>
+          <div style={{ fontSize: '0.85rem', color: '#999', marginBottom: '0.25rem' }}>Pedido para:</div>
+          <div style={{ fontSize: '1.25rem', fontWeight: '700', color: '#333', marginBottom: '0.25rem' }}>{selectedRestaurant ? selectedRestaurant.name : 'Selecciona un restaurante'}</div>
           {selectedRestaurant && (
             <div style={{ fontSize: '0.9rem', color: '#666', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <MapPin size={16} />
-              {selectedRestaurant.address}
+              <MapPin size={16} />{selectedRestaurant.address}
               <span style={{ marginLeft: '1rem', color: '#FFC107', fontWeight: '600' }}>
                 <Truck size={16} style={{ display: 'inline', marginRight: '0.25rem' }} />
                 {ISLANDS.find(i => i.id === selectedRestaurant.island)?.deliveryDays}
@@ -704,91 +386,24 @@ function CategoriesView({ setSelectedCategory, favorites, selectedRestaurant, se
             </div>
           )}
         </div>
-        <button
-          onClick={() => setShowRestaurantModal(true)}
-          style={{
-            padding: '0.75rem 1.5rem',
-            background: '#1a1a1a',
-            color: '#fff',
-            border: 'none',
-            borderRadius: '8px',
-            cursor: 'pointer',
-            fontWeight: '600'
-          }}
-        >
-          Cambiar Restaurante
-        </button>
+        <button onClick={() => setShowRestaurantModal(true)} style={{ padding: '0.75rem 1.5rem', background: '#1a1a1a', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600' }}>Cambiar Restaurante</button>
       </div>
 
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-        gap: '1.5rem'
-      }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.5rem' }}>
         {CATEGORIES.map((cat, i) => (
-          <div
-            key={cat.id}
-            onClick={() => setSelectedCategory(cat.id)}
-            style={{
-              background: '#fff',
-              borderRadius: '16px',
-              overflow: 'hidden',
-              cursor: 'pointer',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-              transition: 'all 0.3s',
-              animation: `fadeIn 0.5s ease ${i * 0.1}s backwards`
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-8px)';
-              e.currentTarget.style.boxShadow = '0 12px 24px rgba(0,0,0,0.15)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)';
-            }}
-          >
+          <div key={cat.id} onClick={() => setSelectedCategory(cat.id)} style={{ background: '#fff', borderRadius: '16px', overflow: 'hidden', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', transition: 'all 0.3s', animation: `fadeIn 0.5s ease ${i * 0.1}s backwards` }} onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-8px)'; e.currentTarget.style.boxShadow = '0 12px 24px rgba(0,0,0,0.15)'; }} onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)'; }}>
             <div style={{ position: 'relative', height: '180px', overflow: 'hidden' }}>
-              <img
-                src={cat.image}
-                alt={cat.name}
-                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-              />
-              <div style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                background: 'linear-gradient(to bottom, rgba(0,0,0,0.3), rgba(0,0,0,0.7))'
-              }} />
+              <img src={cat.image} alt={cat.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.3), rgba(0,0,0,0.7))' }} />
               {cat.id === 'favorites' && favorites.length > 0 && (
-                <div style={{
-                  position: 'absolute',
-                  top: '1rem',
-                  right: '1rem',
-                  background: '#FFC107',
-                  color: '#333',
-                  padding: '0.5rem 1rem',
-                  borderRadius: '20px',
-                  fontSize: '0.85rem',
-                  fontWeight: '700'
-                }}>
+                <div style={{ position: 'absolute', top: '1rem', right: '1rem', background: '#FFC107', color: '#333', padding: '0.5rem 1rem', borderRadius: '20px', fontSize: '0.85rem', fontWeight: '700' }}>
                   {favorites.length} producto{favorites.length !== 1 ? 's' : ''}
                 </div>
               )}
             </div>
             <div style={{ padding: '1.5rem' }}>
-              <h3 style={{
-                fontSize: '1.25rem',
-                fontWeight: '700',
-                color: '#333',
-                marginBottom: '0.5rem'
-              }}>
-                {cat.name}
-              </h3>
-              <p style={{ fontSize: '0.9rem', color: '#666', lineHeight: '1.5' }}>
-                {cat.description}
-              </p>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: '700', color: '#333', marginBottom: '0.5rem' }}>{cat.name}</h3>
+              <p style={{ fontSize: '0.9rem', color: '#666', lineHeight: '1.5' }}>{cat.description}</p>
             </div>
           </div>
         ))}
@@ -797,24 +412,178 @@ function CategoriesView({ setSelectedCategory, favorites, selectedRestaurant, se
   );
 }
 
-// ============ COMPONENTE APP PRINCIPAL ============
+function ProductsView({ productsToShow, selectedCategory, setSelectedCategory, favorites, toggleFavorite, addToCart, cart, updateQuantity, cartTotal, finishOrder, setShowTechSheet, setSelectedProduct }) {
+  const currentCategory = CATEGORIES.find(c => c.id === selectedCategory);
+  
+  return (
+    <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '2rem' }}>
+      <button onClick={() => setSelectedCategory(null)} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1.5rem', background: '#fff', border: '1px solid #e0e0e0', borderRadius: '8px', cursor: 'pointer', marginBottom: '2rem', fontWeight: '600', color: '#333' }}>
+        ← Volver a Categorías
+      </button>
+
+      <div style={{ background: '#fff', borderRadius: '16px', padding: '2rem', marginBottom: '2rem' }}>
+        <h2 style={{ fontSize: '2rem', fontWeight: '700', color: '#333', marginBottom: '0.5rem' }}>{currentCategory?.name}</h2>
+        <p style={{ color: '#666', fontSize: '1rem' }}>{currentCategory?.description}</p>
+      </div>
+
+      <div style={{ display: 'flex', gap: '2rem' }}>
+        <div style={{ flex: 1 }}>
+          {productsToShow.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '4rem 2rem', background: '#fff', borderRadius: '16px' }}>
+              <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>{selectedCategory === 'favorites' ? '⭐' : '🔍'}</div>
+              <h3 style={{ fontSize: '1.5rem', color: '#666' }}>{selectedCategory === 'favorites' ? 'No tienes favoritos aún' : 'No hay productos'}</h3>
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
+              {productsToShow.map((p, idx) => (
+                <div key={p.id} style={{ background: '#1a1a1a', borderRadius: '16px', overflow: 'hidden', transition: 'all 0.3s', animation: `fadeIn 0.5s ease ${idx * 0.05}s backwards` }} onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-4px)'} onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}>
+                  <div style={{ position: 'relative' }}>
+                    <img src={p.image} alt={p.name} style={{ width: '100%', height: '200px', objectFit: 'cover' }} />
+                    <button onClick={() => toggleFavorite(p.id)} style={{ position: 'absolute', top: '0.75rem', right: '0.75rem', background: favorites.includes(p.id) ? '#FFC107' : 'rgba(255,255,255,0.9)', border: 'none', borderRadius: '50%', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', animation: favorites.includes(p.id) ? 'pulse 0.5s ease' : 'none' }}>
+                      <Heart size={20} color={favorites.includes(p.id) ? '#333' : '#666'} fill={favorites.includes(p.id) ? '#333' : 'none'} />
+                    </button>
+                    <button onClick={() => { setSelectedProduct(p); setShowTechSheet(true); }} style={{ position: 'absolute', top: '0.75rem', left: '0.75rem', background: '#FFC107', border: 'none', borderRadius: '50%', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                      <FileText size={20} color="#333" />
+                    </button>
+                  </div>
+                  <div style={{ padding: '1.25rem' }}>
+                    <h3 style={{ fontSize: '1.125rem', fontWeight: '600', color: '#fff', marginBottom: '0.5rem' }}>{p.name}</h3>
+                    <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                      <span style={{ fontSize: '0.75rem', padding: '0.25rem 0.75rem', background: '#2a2a2a', color: '#FFC107', borderRadius: '12px', fontWeight: '600' }}>{p.code}</span>
+                      <span style={{ fontSize: '0.75rem', padding: '0.25rem 0.75rem', background: '#2a2a2a', color: '#aaa', borderRadius: '12px' }}>{p.format}</span>
+                    </div>
+                    <p style={{ fontSize: '0.875rem', color: '#999', marginBottom: '1rem' }}>{p.description}</p>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <div style={{ fontSize: '1.75rem', fontWeight: '700', color: '#FFC107' }}>€{p.price.toFixed(2)}</div>
+                        <div style={{ fontSize: '0.75rem', color: '#666' }}>/{p.unit}</div>
+                      </div>
+                      <button onClick={() => addToCart(p)} style={{ background: '#FFC107', color: '#333', border: 'none', borderRadius: '12px', padding: '0.75rem 1.5rem', fontSize: '0.95rem', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <Plus size={18} />Añadir
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div style={{ width: '350px' }}>
+          <div style={{ background: '#fff', borderRadius: '16px', boxShadow: '0 4px 16px rgba(0,0,0,0.1)', position: 'sticky', top: '100px' }}>
+            <div style={{ background: '#FFC107', padding: '1.5rem', borderRadius: '16px 16px 0 0' }}>
+              <h3 style={{ margin: 0, fontWeight: '700', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <ShoppingCart size={20} />Carrito
+              </h3>
+            </div>
+            <div style={{ padding: '1rem', maxHeight: '400px', overflowY: 'auto' }}>
+              {cart.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '2rem 1rem', color: '#999' }}>
+                  <ShoppingCart size={48} color="#ccc" />
+                  <p style={{ marginTop: '1rem' }}>Carrito vacío</p>
+                </div>
+              ) : (
+                cart.map(item => (
+                  <div key={item.id} style={{ display: 'flex', gap: '1rem', padding: '1rem', background: '#f8f8f8', borderRadius: '12px', marginBottom: '0.75rem' }}>
+                    <img src={item.image} alt={item.name} style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '8px' }} />
+                    <div style={{ flex: 1 }}>
+                      <h4 style={{ margin: '0 0 0.25rem 0', fontSize: '0.95rem', color: '#333' }}>{item.name}</h4>
+                      <p style={{ margin: '0 0 0.5rem 0', fontSize: '0.85rem', color: '#666' }}>€{item.price.toFixed(2)}</p>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#fff', borderRadius: '8px', padding: '0.25rem' }}>
+                          <button onClick={() => updateQuantity(item.id, -1)} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', padding: '0.25rem' }}>
+                            <Minus size={16} />
+                          </button>
+                          <span style={{ minWidth: '24px', textAlign: 'center', fontWeight: '700', color: '#FFC107' }}>{item.quantity}</span>
+                          <button onClick={() => updateQuantity(item.id, 1)} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', padding: '0.25rem' }}>
+                            <Plus size={16} />
+                          </button>
+                        </div>
+                        <span style={{ fontWeight: '700', color: '#FFC107' }}>€{(item.price * item.quantity).toFixed(2)}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+            {cart.length > 0 && (
+              <div style={{ padding: '1.5rem', borderTop: '2px solid #e0e0e0' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', color: '#666' }}>
+                  <span>Subtotal:</span><span>€{cartTotal.toFixed(2)}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', color: '#666', fontSize: '0.9rem' }}>
+                  <span>IGIC (7%):</span><span>€{(cartTotal * 0.07).toFixed(2)}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem', fontWeight: '700', fontSize: '1.25rem' }}>
+                  <span>Total:</span><span style={{ color: '#FFC107' }}>€{(cartTotal * 1.07).toFixed(2)}</span>
+                </div>
+                <button onClick={finishOrder} style={{ width: '100%', background: '#FFC107', color: '#333', border: 'none', borderRadius: '12px', padding: '1rem', fontSize: '1.1rem', fontWeight: '700', cursor: 'pointer' }}>
+                  Finalizar Pedido
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function OrdersView({ user }) {
+  const [orders, setOrders] = useState([]);
+  useEffect(() => { setOrders(BACKEND.getOrders(user.id)); }, [user.id]);
+  
+  return (
+    <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem' }}>
+      <h2 style={{ fontSize: '2rem', fontWeight: '700', marginBottom: '2rem', color: '#333' }}>Mis Pedidos</h2>
+      {orders.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '4rem 2rem', background: '#fff', borderRadius: '16px' }}>
+          <Package size={64} color="#ccc" />
+          <h3 style={{ fontSize: '1.5rem', color: '#666', margin: '1rem 0' }}>No tienes pedidos aún</h3>
+        </div>
+      ) : (
+        orders.map(order => (
+          <div key={order.id} style={{ background: '#fff', border: '1px solid #e0e0e0', borderRadius: '16px', marginBottom: '1.5rem', padding: '2rem', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+            <div style={{ fontSize: '1.25rem', fontWeight: '700', color: '#333', marginBottom: '0.5rem' }}>Pedido {order.orderNumber}</div>
+            <div style={{ fontSize: '0.9rem', color: '#666', marginBottom: '1rem' }}>
+              {new Date(order.createdAt).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+            </div>
+            <div style={{ padding: '1rem', background: '#f8f8f8', borderRadius: '8px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                <span>Subtotal:</span><span>€{order.subtotal.toFixed(2)}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                <span>IGIC (7%):</span><span>€{order.tax.toFixed(2)}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '0.5rem', borderTop: '2px solid #e0e0e0', fontSize: '1.25rem', fontWeight: '700' }}>
+                <span>Total:</span><span style={{ color: '#FFC107' }}>€{order.total.toFixed(2)}</span>
+              </div>
+            </div>
+          </div>
+        ))
+      )}
+    </div>
+  );
+}
+
 function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [currentView, setCurrentView] = useState('catalog');
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [selectedRestaurant, setSelectedRestaurant] = useState(null);
   const [favorites, setFavorites] = useState([]);
+  const [cart, setCart] = useState([]);
   const [notification, setNotification] = useState(null);
   const [showRestaurantModal, setShowRestaurantModal] = useState(false);
+  const [showTechSheet, setShowTechSheet] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState(null);
 
   useEffect(() => {
     const user = BACKEND.getCurrentUser();
     if (user) {
       setCurrentUser(user);
       setFavorites(BACKEND.getFavorites(user.id));
-      if (user.restaurants?.length > 0) {
-        setSelectedRestaurant(user.restaurants[0]);
-      }
+      if (user.restaurants?.length > 0) setSelectedRestaurant(user.restaurants[0]);
     }
   }, []);
 
@@ -823,12 +592,64 @@ function App() {
     setTimeout(() => setNotification(null), 3000);
   };
 
+  const toggleFavorite = (productId) => {
+    if (favorites.includes(productId)) {
+      BACKEND.removeFromFavorites(currentUser.id, productId);
+      setFavorites(favorites.filter(id => id !== productId));
+      showNotif('Eliminado de favoritos');
+    } else {
+      BACKEND.addToFavorites(currentUser.id, productId);
+      setFavorites([...favorites, productId]);
+      showNotif('Añadido a favoritos');
+    }
+  };
+
+  const addToCart = (product) => {
+    if (!selectedRestaurant) {
+      showNotif('Selecciona un restaurante primero');
+      return;
+    }
+    setCart(prev => {
+      const existing = prev.find(item => item.id === product.id);
+      if (existing) return prev.map(item => item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item);
+      return [...prev, { ...product, quantity: 1 }];
+    });
+    showNotif(`${product.name} añadido al carrito`);
+  };
+
+  const updateQuantity = (productId, delta) => {
+    setCart(prev => {
+      const updated = prev.map(item => item.id === productId ? { ...item, quantity: Math.max(0, item.quantity + delta) } : item);
+      return updated.filter(item => item.quantity > 0);
+    });
+  };
+
+  const finishOrder = () => {
+    if (cart.length === 0) { showNotif('El carrito está vacío'); return; }
+    if (!selectedRestaurant) { showNotif('Selecciona un restaurante'); return; }
+    
+    const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const order = {
+      userId: currentUser.id,
+      restaurantId: selectedRestaurant.id,
+      restaurant: selectedRestaurant,
+      island: selectedRestaurant.island,
+      items: cart,
+      subtotal,
+      tax: subtotal * 0.07,
+      total: subtotal * 1.07
+    };
+    
+    BACKEND.createOrder(order);
+    setFavorites(BACKEND.getFavorites(currentUser.id));
+    setCart([]);
+    showNotif('¡Pedido realizado! Productos añadidos a favoritos');
+  };
+
   const handleLogin = (user) => {
     setCurrentUser(user);
     setFavorites(BACKEND.getFavorites(user.id));
-    if (user.restaurants?.length > 0) {
-      setSelectedRestaurant(user.restaurants[0]);
-    }
+    if (user.restaurants?.length > 0) setSelectedRestaurant(user.restaurants[0]);
   };
 
   const handleLogout = () => {
@@ -836,78 +657,45 @@ function App() {
     window.location.reload();
   };
 
-  if (!currentUser) {
-    return <LoginScreen onLogin={handleLogin} />;
+  if (!currentUser) return <LoginScreen onLogin={handleLogin} />;
+
+  let productsToShow = [];
+  if (selectedCategory) {
+    productsToShow = selectedCategory === 'favorites' ? PRODUCTS.filter(p => favorites.includes(p.id)) : PRODUCTS.filter(p => p.category === selectedCategory);
   }
+  const cartTotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
   return (
     <div style={{ minHeight: '100vh', background: '#f5f5f5' }}>
-      <Header
-        user={currentUser}
-        onLogout={handleLogout}
-        currentView={currentView}
-        setCurrentView={setCurrentView}
-        selectedRestaurant={selectedRestaurant}
-      />
+      <Header user={currentUser} onLogout={handleLogout} currentView={currentView} setCurrentView={setCurrentView} selectedRestaurant={selectedRestaurant} />
 
       {notification && (
-        <div style={{
-          position: 'fixed',
-          top: '100px',
-          right: '2rem',
-          background: '#FFC107',
-          color: '#333',
-          padding: '1rem 1.5rem',
-          borderRadius: '12px',
-          zIndex: 1000,
-          fontWeight: '600',
-          boxShadow: '0 4px 12px rgba(255,193,7,0.3)',
-          animation: 'fadeIn 0.3s'
-        }}>
+        <div style={{ position: 'fixed', top: '100px', right: '2rem', background: '#FFC107', color: '#333', padding: '1rem 1.5rem', borderRadius: '12px', zIndex: 1000, fontWeight: '600', boxShadow: '0 4px 12px rgba(255,193,7,0.3)', animation: 'fadeIn 0.3s' }}>
           {notification}
         </div>
       )}
 
       {currentView === 'catalog' && (
-        <CategoriesView
-          setSelectedCategory={setSelectedCategory}
-          favorites={favorites}
-          selectedRestaurant={selectedRestaurant}
-          setShowRestaurantModal={setShowRestaurantModal}
-        />
+        selectedCategory ? (
+          <ProductsView productsToShow={productsToShow} selectedCategory={selectedCategory} setSelectedCategory={setSelectedCategory} favorites={favorites} toggleFavorite={toggleFavorite} addToCart={addToCart} cart={cart} updateQuantity={updateQuantity} cartTotal={cartTotal} finishOrder={finishOrder} setShowTechSheet={setShowTechSheet} setSelectedProduct={setSelectedProduct} />
+        ) : (
+          <CategoriesView setSelectedCategory={setSelectedCategory} favorites={favorites} selectedRestaurant={selectedRestaurant} setShowRestaurantModal={setShowRestaurantModal} />
+        )
       )}
 
-      {currentView === 'orders' && (
-        <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '2rem' }}>
-          <div style={{
-            background: '#fff',
-            padding: '2rem',
-            borderRadius: '16px',
-            textAlign: 'center'
-          }}>
-            <h2 style={{ fontSize: '2rem', color: '#333', marginBottom: '1rem' }}>
-              Mis Pedidos
-            </h2>
-            <p style={{ color: '#666' }}>
-              Aquí irá el historial de pedidos
-            </p>
-          </div>
-        </div>
-      )}
+      {currentView === 'orders' && <OrdersView user={currentUser} />}
 
       {showRestaurantModal && currentUser.restaurants && (
-        <RestaurantModal
-          user={currentUser}
-          selectedRestaurant={selectedRestaurant}
-          setSelectedRestaurant={setSelectedRestaurant}
-          onClose={() => setShowRestaurantModal(false)}
-        />
+        <RestaurantModal user={currentUser} selectedRestaurant={selectedRestaurant} setSelectedRestaurant={setSelectedRestaurant} onClose={() => setShowRestaurantModal(false)} />
+      )}
+
+      {showTechSheet && selectedProduct && (
+        <TechSheetModal product={selectedProduct} onClose={() => setShowTechSheet(false)} />
       )}
     </div>
   );
 }
 
-// ============ RENDERIZAR APP ============
 ReactDOM.render(<App />, document.getElementById('root'));
 </script>
 </body>
