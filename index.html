@@ -79,6 +79,16 @@ body {
     align-items: center;
     justifyContent: center;
   }
+  
+  /* Ocultar sidebar del carrito en móvil */
+  .desktop-cart-sidebar {
+    display: none !important;
+  }
+  
+  /* Hacer productos full width en móvil */
+  .products-main-column {
+    width: 100% !important;
+  }
 }
 </style>
 </head>
@@ -561,28 +571,29 @@ function RecommendationsModal({ product, onClose, onAddToCart, cart }) {
     : PRODUCTS.filter(p => p.category === product.category && p.id !== product.id).slice(0, 3);
 
   const isInCart = (productId) => cart.some(item => item.id === productId);
+  const isMobile = window.innerWidth <= 768;
 
   return (
-    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '2rem', animation: 'fadeIn 0.3s ease' }} onClick={onClose}>
-      <div style={{ background: '#fff', borderRadius: '20px', maxWidth: '700px', width: '100%', maxHeight: '85vh', overflow: 'auto', animation: 'slideUp 0.3s ease' }} onClick={(e) => e.stopPropagation()}>
-        <div style={{ background: 'linear-gradient(135deg, #FFC107, #FFD54F)', padding: '2rem', borderRadius: '20px 20px 0 0', position: 'relative' }}>
+    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: isMobile ? 'flex-end' : 'center', justifyContent: 'center', zIndex: 1000, padding: isMobile ? 0 : '2rem', animation: 'fadeIn 0.3s ease' }} onClick={onClose}>
+      <div style={{ background: '#fff', borderRadius: isMobile ? '20px 20px 0 0' : '20px', maxWidth: isMobile ? '100%' : '700px', width: '100%', maxHeight: isMobile ? '95vh' : '85vh', overflow: 'auto', animation: 'slideUp 0.3s ease' }} onClick={(e) => e.stopPropagation()}>
+        <div style={{ background: 'linear-gradient(135deg, #FFC107, #FFD54F)', padding: isMobile ? '1.5rem 1rem' : '2rem', borderRadius: isMobile ? '20px 20px 0 0' : '20px 20px 0 0', position: 'relative' }}>
           <button onClick={onClose} style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'rgba(0,0,0,0.1)', border: 'none', borderRadius: '50%', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
             <X size={20} color="#333" />
           </button>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.5rem' }}>
-            <Sparkles size={32} color="#333" />
-            <h2 style={{ margin: 0, fontSize: '1.75rem', fontWeight: '700', color: '#333' }}>¡Productos que combinan perfecto!</h2>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
+            <Sparkles size={isMobile ? 24 : 32} color="#333" />
+            <h2 style={{ margin: 0, fontSize: isMobile ? '1.25rem' : '1.75rem', fontWeight: '700', color: '#333' }}>¡Productos que combinan perfecto!</h2>
           </div>
-          <p style={{ margin: 0, color: '#333', fontSize: '1rem', opacity: 0.9 }}>Clientes que compraron <strong>{product.name}</strong> también eligieron:</p>
+          <p style={{ margin: 0, color: '#333', fontSize: isMobile ? '0.9rem' : '1rem', opacity: 0.9 }}>Clientes que compraron <strong>{product.name}</strong> también eligieron:</p>
         </div>
-        <div style={{ padding: '1.5rem 2rem', background: '#f8f8f8', borderBottom: '2px solid #e0e0e0' }}>
+        <div style={{ padding: isMobile ? '1rem' : '1.5rem 2rem', background: '#f8f8f8', borderBottom: '2px solid #e0e0e0' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
             <div style={{ background: '#4CAF50', borderRadius: '50%', width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               <span style={{ color: '#fff', fontSize: '1.25rem', fontWeight: '700' }}>✓</span>
             </div>
-            <span style={{ fontSize: '1rem', fontWeight: '600', color: '#333' }}>Agregado al carrito</span>
+            <span style={{ fontSize: isMobile ? '0.9rem' : '1rem', fontWeight: '600', color: '#333' }}>Agregado al carrito</span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', paddingLeft: '2.25rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', paddingLeft: isMobile ? '0' : '2.25rem' }}>
             <img src={product.image} alt={product.name} style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '8px' }} />
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: '0.95rem', fontWeight: '600', color: '#333' }}>{product.name}</div>
@@ -590,7 +601,7 @@ function RecommendationsModal({ product, onClose, onAddToCart, cart }) {
             </div>
           </div>
         </div>
-        <div style={{ padding: '2rem' }}>
+        <div style={{ padding: isMobile ? '1rem' : '2rem' }}>
           {relatedProducts.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '2rem', color: '#999' }}>No hay recomendaciones disponibles</div>
           ) : (
@@ -759,7 +770,7 @@ function ProductsView({ productsToShow, selectedCategory, setSelectedCategory, f
       </div>
 
       <div style={{ display: 'flex', gap: '2rem' }}>
-        <div style={{ flex: 1 }}>
+        <div style={{ flex: 1 }} className="products-main-column">
           {productsToShow.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '4rem 2rem', background: '#fff', borderRadius: '16px' }}>
               <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>{selectedCategory === 'favorites' ? '⭐' : '🔍'}</div>
@@ -824,7 +835,7 @@ function ProductsView({ productsToShow, selectedCategory, setSelectedCategory, f
           )}
         </div>
 
-        <div style={{ width: '350px' }}>
+        <div style={{ width: '350px' }} className="desktop-cart-sidebar">
           <div style={{ background: '#fff', borderRadius: '16px', boxShadow: '0 4px 16px rgba(0,0,0,0.1)', position: 'sticky', top: '100px' }}>
             <div style={{ background: '#FFC107', padding: '1.5rem', borderRadius: '16px 16px 0 0' }}>
               <h3 style={{ margin: 0, fontWeight: '700', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
